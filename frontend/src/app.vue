@@ -59,7 +59,6 @@ onUnmounted(() => {
 // Watch route changes to manage connection
 watch(() => route.path, manageSocketConnection)
 </script>
-
 <template>
   <el-config-provider namespace="ep">
     <!-- Global loading status -->
