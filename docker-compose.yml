@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # 核心服务
+  web:
+    build: ./frontend
+    ports: ["8080:80"]
+    
+  api:
+    build: ./backend
+    ports: ["5000:5000"]
+    environment:
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+      - ES_HOST=elasticsearch
+    depends_on:
+      - mysql
+      - redis
+      - elasticsearch
+
+  # 数据服务  
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: crawler
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:6.2
+    ports: ["6379:6379"]
+    volumes:
+      - redis_data:/data
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.14.0
+    environment:
+      - discovery.type=single-node
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+
+  # 扩展服务
+  proxy-pool:
+    image: proxy-pool:latest
+    ports: ["5010:5010"]
+
+  scheduler:
+    image: scheduler:latest
+    depends_on: [api]
+
+volumes:
+  mysql_data:
+  redis_data:
+  es_data:
