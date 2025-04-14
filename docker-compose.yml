@@ -1,31 +1,64 @@
 version: '3.8'
 
 services:
-  # 核心服务
-  web:
+  # Core services
+  frontend:
     build: ./frontend
     ports: ["8080:80"]
+    volumes:
+      - ./frontend:/app:ro
+      - /app/node_modules
+    depends_on:
+      - api
+    environment:
+      - VITE_API_URL=http://localhost:5000/api
+      - VITE_WS_URL=ws://localhost:5000/ws
     
   api:
     build: ./backend
     ports: ["5000:5000"]
+    volumes:
+      - ./backend:/app:ro
     environment:
+      - FLASK_ENV=development
       - DB_HOST=mysql
       - REDIS_HOST=redis
       - ES_HOST=elasticsearch
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
       - mysql
       - redis
       - elasticsearch
 
-  # 数据服务  
+  # Worker service
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.celery worker --loglevel=info
+    volumes:
+      - ./backend:/app:ro
+    environment:
+      - FLASK_ENV=development
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - api
+      - redis
+
+  # Data services  
   mysql:
     image: mysql:8.0
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password}
       MYSQL_DATABASE: crawler
     volumes:
       - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
 
   redis:
     image: redis:6.2
@@ -37,10 +70,11 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.14.0
     environment:
       - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     volumes:
       - es_data:/usr/share/elasticsearch/data
-
-
+    ports:
+      - "9200:9200"
 
 volumes:
   mysql_data:

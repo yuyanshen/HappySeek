@@ -1,5 +1,7 @@
-import io from 'socket.io-client'
-import { useStore } from 'vuex'
+// frontend/src/utils/socket.js
+import { io } from 'socket.io-client'
+import { useAppStore } from '@/stores/app'
+import { useTaskStore } from '@/stores/task'
 
 let socket = null
 const RECONNECT_LIMIT = 5
@@ -7,26 +9,38 @@ const RECONNECT_LIMIT = 5
 export function setupTaskSocket() {
   if (socket?.connected) return
   
-  const store = useStore()
+  const appStore = useAppStore()
+  const taskStore = useTaskStore()
   
-  socket = io(import.meta.env.VITE_WS_URL, {
+  // Get WebSocket URL from environment or app config
+  const wsUrl = import.meta.env.VITE_WS_URL || 
+                (appStore.config && appStore.config.wsUrl) || 
+                window.location.origin.replace('http', 'ws') + '/ws'
+  
+  socket = io(wsUrl, {
     reconnectionAttempts: RECONNECT_LIMIT,
     timeout: 10000,
-    auth: {
-      token: store.state.user.token // 携带认证信息
-    }
+    transports: ['websocket'],
+    path: '/socket.io'
   })
 
   socket.on('connect', () => {
-    store.commit('setWsConnected', true)
+    appStore.setWsConnected(true)
+    console.log('WebSocket connected!')
   })
 
-  socket.on('task_update', (data) => {
-    store.commit('task/updateProgress', data)
+  socket.on('task_progress', (data) => {
+    taskStore.updateProgress(data)
   })
 
   socket.on('disconnect', () => {
-    store.commit('setWsConnected', false)
+    appStore.setWsConnected(false)
+    console.log('WebSocket disconnected')
+  })
+
+  socket.on('connect_error', (error) => {
+    console.error('WebSocket connection error:', error)
+    appStore.setWsConnected(false)
   })
 }
 
@@ -34,5 +48,20 @@ export function disconnectSocket() {
   if (socket) {
     socket.disconnect()
     socket = null
+    console.log('WebSocket manually disconnected')
+  }
+}
+
+// Join a specific task room to receive updates for that task
+export function joinTaskRoom(taskId) {
+  if (socket?.connected) {
+    socket.emit('join', { task_id: taskId })
+  }
+}
+
+// Leave a specific task room
+export function leaveTaskRoom(taskId) {
+  if (socket?.connected) {
+    socket.emit('leave', { task_id: taskId })
   }
 }

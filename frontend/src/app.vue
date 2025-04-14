@@ -1,31 +1,19 @@
+<!-- frontend/src/app.vue -->
 <script setup>
-import { onMounted, onUnmounted } from 'vue'
-import { useStore } from 'vuex'
+import { onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { setupTaskSocket, disconnectSocket } from '@/utils/socket'
 import { ElNotification } from 'element-plus'
-import { onMounted } from 'vue'
 import errorHandler from '@/utils/errorHandler'
 
-onMounted(() => {
-  // 初始化错误监听
-  errorHandler.init()
-  
-  // 测试错误处理（开发环境）
-  if (import.meta.env.DEV) {
-    window.testError = () => {
-      errorHandler.handle(new Error('测试错误'), {
-        customTitle: '测试通知'
-      })
-    }
-  }
-})
+// Store using Pinia
+import { useAppStore } from '@/stores/app'
+const appStore = useAppStore()
 
-// 状态管理
-const store = useStore()
+// Router
 const route = useRoute()
 
-// 初始化WebSocket连接（仅任务页面保持连接）
+// Initialize WebSocket connection (only maintain connection on task pages)
 const manageSocketConnection = () => {
   if (route.path.startsWith('/tasks')) {
     setupTaskSocket()
@@ -34,7 +22,7 @@ const manageSocketConnection = () => {
   }
 }
 
-// 全局错误处理
+// Global error handling
 const handleError = (error) => {
   console.error('Global error:', error)
   ElNotification({
@@ -45,56 +33,59 @@ const handleError = (error) => {
   })
 }
 
-// 初始化操作
+// Initialize operations
 onMounted(() => {
-  // 1. 初始化必要数据
-  store.dispatch('loadAppConfig')
+  // 1. Initialize necessary data
+  appStore.loadAppConfig()
   
-  // 2. 设置路由监听管理Socket
+  // 2. Set up router listener to manage Socket
   manageSocketConnection()
   
-  // 3. 全局错误监听
+  // 3. Global error listener
   window.addEventListener('error', handleError)
   window.addEventListener('unhandledrejection', handleError)
+  
+  // Initialize error handler
+  errorHandler.init()
 })
 
-// 清理操作
+// Cleanup operations
 onUnmounted(() => {
   disconnectSocket()
   window.removeEventListener('error', handleError)
   window.removeEventListener('unhandledrejection', handleError)
 })
 
-// 路由变化时管理连接
+// Watch route changes to manage connection
 watch(() => route.path, manageSocketConnection)
 </script>
 
 <template>
   <el-config-provider namespace="ep">
-    <!-- 全局加载状态 -->
+    <!-- Global loading status -->
     <el-loading 
-      v-if="store.state.app.loading" 
+      v-if="appStore.loading" 
       fullscreen 
       lock
       text="系统初始化中..."
     />
     
-    <!-- 主内容区 -->
+    <!-- Main content area -->
     <router-view v-slot="{ Component }">
       <transition name="fade" mode="out-in">
         <component :is="Component" />
       </transition>
     </router-view>
     
-    <!-- 全局通知容器 -->
+    <!-- Global notification container -->
     <el-notification-group placement="bottom-right">
-      <!-- 内置通知组件将自动注入到这里 -->
+      <!-- Built-in notification components will be automatically injected here -->
     </el-notification-group>
   </el-config-provider>
 </template>
 
 <style>
-/* 全局过渡动画 */
+/* Global transition animations */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;
@@ -105,7 +96,7 @@ watch(() => route.path, manageSocketConnection)
   opacity: 0;
 }
 
-/* 修复ElMessage在transition下的层级问题 */
+/* Fix for ElMessage z-index issues under transitions */
 .el-message {
   z-index: 9999 !important;
 }
