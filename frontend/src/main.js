@@ -2,26 +2,38 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import ElementPlus from 'element-plus'
+import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 import 'element-plus/dist/index.css'
-import App from './App.vue'
+import App from './app.vue'
 import router from './router'
 import errorHandler from './utils/errorHandler'
 
-// Create app instance
 const app = createApp(App)
 
-// Initialize Pinia store
+// 配置 Element Plus
+app.use(ElementPlus, {
+  locale: zhCn,
+  size: 'default',
+  zIndex: 3000
+})
+
+// 初始化 Pinia 状态管理
 const pinia = createPinia()
 app.use(pinia)
 
 // Setup router
 app.use(router)
 
-// Setup Element Plus
-app.use(ElementPlus)
+// 添加全局错误处理器
+app.config.errorHandler = (err, vm, info) => {
+  console.error('Global error:', err)
+  errorHandler.handle(err)
+}
 
-// Initialize error handler
-errorHandler.init()
+// 添加全局属性
+app.config.globalProperties.$api = {
+  baseURL: import.meta.env.VITE_API_URL || '/api'
+}
 
-// Mount the app
+// 挂载应用
 app.mount('#app')

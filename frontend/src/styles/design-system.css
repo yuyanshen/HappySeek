@@ -1,0 +1,450 @@
+:root {
+  /* 主题色 */
+  --primary-color: #0066cc;
+  --success-color: #67c23a;
+  --warning-color: #e6a23c;
+  --error-color: #f56c6c;
+  --info-color: #909399;
+
+  /* 背景色 */
+  --background-color: #111827;
+  --surface-color: #1f2937;
+  --surface-color-hover: #374151;
+  --surface-color-active: #4b5563;
+
+  /* 文字颜色 */
+  --text-primary: rgba(255, 255, 255, 0.95);
+  --text-secondary: rgba(255, 255, 255, 0.65);
+  --text-disabled: rgba(255, 255, 255, 0.38);
+
+  /* 字体大小 */
+  --font-size-xs: 0.75rem;   /* 12px */
+  --font-size-sm: 0.875rem;  /* 14px */
+  --font-size-base: 1rem;    /* 16px */
+  --font-size-lg: 1.125rem;  /* 18px */
+  --font-size-xl: 1.25rem;   /* 20px */
+  --font-size-2xl: 1.5rem;   /* 24px */
+  --font-size-3xl: 1.875rem; /* 30px */
+  --font-size-4xl: 2.25rem;  /* 36px */
+
+  /* 字重 */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* 行高 */
+  --line-height-none: 1;
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* 间距系统 */
+  --spacing-1: 0.25rem;   /* 4px */
+  --spacing-2: 0.5rem;    /* 8px */
+  --spacing-3: 0.75rem;   /* 12px */
+  --spacing-4: 1rem;      /* 16px */
+  --spacing-5: 1.25rem;   /* 20px */
+  --spacing-6: 1.5rem;    /* 24px */
+  --spacing-8: 2rem;      /* 32px */
+  --spacing-10: 2.5rem;   /* 40px */
+  --spacing-12: 3rem;     /* 48px */
+  --spacing-16: 4rem;     /* 64px */
+
+  /* 圆角 */
+  --border-radius-none: 0;
+  --border-radius-sm: 0.375rem;  /* 6px */
+  --border-radius-md: 0.5rem;    /* 8px */
+  --border-radius-lg: 0.75rem;   /* 12px */
+  --border-radius-xl: 1rem;      /* 16px */
+  --border-radius-full: 9999px;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  /* 过渡动画 */
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Z-index 层级 */
+  --z-index-dropdown: 1000;
+  --z-index-sticky: 1020;
+  --z-index-fixed: 1030;
+  --z-index-modal-backdrop: 1040;
+  --z-index-modal: 1050;
+  --z-index-popover: 1060;
+  --z-index-tooltip: 1070;
+}
+
+/* 全局基础样式 */
+body {
+  background-color: var(--background-color);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: var(--line-height-normal);
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--border-radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* 通用工具类 */
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.fade-scale {
+  animation: fadeScale 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.fade-slide {
+  animation: fadeSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 浮动效果 */
+.hover-float {
+  transition: transform var(--transition-normal);
+}
+
+.hover-float:hover {
+  transform: translateY(-4px);
+}
+
+/* 渐变边框效果 */
+.gradient-border {
+  position: relative;
+  background: var(--surface-color);
+  border-radius: var(--border-radius-lg);
+  z-index: 0;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: calc(var(--border-radius-lg) + 2px);
+  background: linear-gradient(135deg, var(--primary-color), #5ac8fa);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
+
+.gradient-border:hover::before {
+  opacity: 1;
+}
+
+/* Element Plus 主题覆盖 */
+:root {
+  --el-color-primary: var(--primary-color);
+  --el-color-success: var(--success-color);
+  --el-color-warning: var(--warning-color);
+  --el-color-danger: var(--error-color);
+  --el-color-info: var(--info-color);
+  
+  --el-bg-color: var(--surface-color);
+  --el-bg-color-overlay: var(--surface-color);
+  
+  --el-text-color-primary: var(--text-primary);
+  --el-text-color-regular: var(--text-secondary);
+  --el-text-color-secondary: var(--text-secondary);
+  --el-text-color-placeholder: var(--text-disabled);
+  
+  --el-border-radius-base: var(--border-radius-md);
+  --el-border-radius-small: var(--border-radius-sm);
+  --el-border-radius-round: var(--border-radius-full);
+  
+  --el-font-size-base: var(--font-size-base);
+  --el-font-size-small: var(--font-size-sm);
+  --el-font-size-large: var(--font-size-lg);
+  
+  --el-font-weight-primary: var(--font-weight-medium);
+}
+
+/* Element Plus 组件样式覆盖 */
+.el-button {
+  border-radius: var(--border-radius-full);
+  font-weight: var(--font-weight-medium);
+}
+
+.el-button--primary {
+  background: linear-gradient(135deg, var(--primary-color), #5ac8fa);
+  border: none;
+}
+
+.el-button--primary:hover {
+  background: linear-gradient(135deg, #0077ed, #6ed4ff);
+  transform: translateY(-1px);
+}
+
+.el-input__wrapper,
+.el-select__wrapper {
+  border-radius: var(--border-radius-lg);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.el-input__wrapper:hover,
+.el-select__wrapper:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.el-input__wrapper:focus-within,
+.el-select__wrapper:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+}
+
+.el-dialog {
+  border-radius: var(--border-radius-xl);
+  background: var(--surface-color);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.el-dialog__header {
+  margin: 0;
+  padding: var(--spacing-6) var(--spacing-6) var(--spacing-4);
+}
+
+.el-dialog__title {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xl);
+}
+
+.el-dialog__body {
+  padding: var(--spacing-6);
+  color: var(--text-primary);
+}
+
+.el-dialog__footer {
+  padding: var(--spacing-4) var(--spacing-6) var(--spacing-6);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.el-message {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius-lg);
+}
+
+.el-message--success {
+  background: rgba(52, 199, 89, 0.1);
+  border-color: rgba(52, 199, 89, 0.2);
+}
+
+.el-message--error {
+  background: rgba(255, 59, 48, 0.1);
+  border-color: rgba(255, 59, 48, 0.2);
+}
+
+.el-message--warning {
+  background: rgba(255, 149, 0, 0.1);
+  border-color: rgba(255, 149, 0, 0.2);
+}
+
+.el-message__content {
+  color: var(--text-primary);
+}
+
+.el-tag {
+  border-radius: var(--border-radius-full);
+  border: none;
+  font-weight: var(--font-weight-medium);
+}
+
+.el-tag--success {
+  background: rgba(52, 199, 89, 0.1);
+  color: var(--success-color);
+}
+
+.el-tag--danger {
+  background: rgba(255, 59, 48, 0.1);
+  color: var(--error-color);
+}
+
+.el-tag--warning {
+  background: rgba(255, 149, 0, 0.1);
+  color: var(--warning-color);
+}
+
+.el-tag--info {
+  background: rgba(88, 86, 214, 0.1);
+  color: var(--info-color);
+}
+
+.el-table {
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.el-table th,
+.el-table td {
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.el-table--enable-row-hover .el-table__body tr:hover > td {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.el-table thead th {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.el-pagination {
+  justify-content: center;
+  margin-top: var(--spacing-6);
+}
+
+.el-pagination button {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.el-pagination button:disabled {
+  background: transparent;
+  color: var(--text-disabled);
+}
+
+.el-pagination .el-pager li {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.el-pagination .el-pager li.active {
+  color: var(--primary-color);
+  font-weight: var(--font-weight-medium);
+}
+
+.el-form-item__label {
+  color: var(--text-secondary);
+}
+
+.el-radio-button__inner {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+}
+
+.el-radio-button__original-radio:checked + .el-radio-button__inner {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  box-shadow: -1px 0 0 0 var(--primary-color);
+  color: var(--text-primary);
+}
+
+/* 动画类 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--transition-normal);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-fade-enter-active {
+  transition: all var(--transition-normal) ease-out;
+}
+
+.slide-fade-leave-active {
+  transition: all var(--transition-normal) cubic-bezier(1, 0.5, 0.8, 1);
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateY(20px);
+  opacity: 0;
+}
+
+/* 响应式布局工具类 */
+.hide-on-mobile {
+  @media (max-width: 768px) {
+    display: none !important;
+  }
+}
+
+.show-on-mobile {
+  @media (min-width: 769px) {
+    display: none !important;
+  }
+}
+
+/* 响应式布局断点 */
+@media (max-width: 640px) {
+  :root {
+    --font-size-4xl: 2rem;
+    --font-size-3xl: 1.75rem;
+    --font-size-2xl: 1.375rem;
+    --font-size-xl: 1.125rem;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --spacing-16: 3rem;
+    --spacing-12: 2.5rem;
+    --spacing-10: 2rem;
+  }
+
+  .glass-card {
+    border-radius: var(--border-radius-md);
+  }
+}

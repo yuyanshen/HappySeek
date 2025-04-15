@@ -1,6 +1,6 @@
-import { ElNotification, ElMessageBox } from 'element-plus'
-import { useStore } from 'vuex'
-import router from '@/router'
+import { useMonitoringStore } from '@/stores/modules/monitoring'
+import * as Sentry from '@sentry/vue'
+import { ElMessage } from 'element-plus'
 
 /**
  * 全局错误处理模块
@@ -10,163 +10,207 @@ import router from '@/router'
  * 3. 认证错误自动跳转
  * 4. 网络错误特殊处理
  * 5. 错误分类上报
+ * 6. 错误跟踪和分析
  */
 
-// 错误类型映射
-const ERROR_TYPES = {
-  NETWORK: {
-    code: 1000,
-    message: '网络连接异常',
-    handler: showNetworkError
-  },
-  AUTH: {
-    code: 401,
-    message: '登录已过期',
-    handler: handleAuthError
-  },
-  API: {
-    code: 500,
-    message: '服务端错误',
-    handler: showServiceError
-  },
-  DEFAULT: {
-    code: -1,
-    message: '未知错误',
-    handler: showDefaultError
+class ErrorHandler {
+  constructor() {
+    this.monitoringStore = null
+    this.initialized = false
   }
-}
 
-// 初始化错误监听
-export function initErrorHandler() {
-  // 1. 全局同步错误
-  window.addEventListener('error', (event) => {
-    handleError(event.error || new Error(event.message))
-  })
+  init() {
+    if (this.initialized) return
 
-  // 2. 全局异步错误
-  window.addEventListener('unhandledrejection', (event) => {
-    handleError(event.reason)
-  })
+    this.monitoringStore = useMonitoringStore()
+    this.initialized = true
 
-  // 3. Vue错误
-  if (window.Vue?.config) {
-    window.Vue.config.errorHandler = handleError
+    // 添加全局未捕获错误处理
+    window.addEventListener('error', this.handleGlobalError.bind(this))
+    window.addEventListener('unhandledrejection', this.handlePromiseRejection.bind(this))
   }
-}
 
-// 核心错误处理
-export function handleError(error, customConfig = {}) {
-  const store = useStore()
-  
-  // 1. 控制台打印
-  console.groupCollapsed('🚨 全局错误捕获')
-  console.error('Error:', error)
-  console.trace('Stack trace:')
-  console.groupEnd()
+  handle(error) {
+    console.error('Error caught:', error)
 
-  // 2. 识别错误类型
-  const errorType = identifyErrorType(error)
-  
-  // 3. 执行对应处理
-  errorType.handler(error, {
-    ...customConfig,
-    store,
-    router
-  })
-
-  // 4. 错误上报（可选）
-  if (process.env.NODE_ENV === 'production') {
-    reportError(error)
+    if (error.response) {
+      // HTTP 错误
+      this.handleHttpError(error.response)
+    } else if (error.request) {
+      // 网络错误
+      this.handleNetworkError(error)
+    } else {
+      // 其他错误
+      this.handleGenericError(error)
+    }
   }
-}
 
-// 错误类型识别
-function identifyErrorType(error) {
-  if (!error) return ERROR_TYPES.DEFAULT
-  
-  // 网络错误
-  if (error.message?.includes('Network Error')) {
-    return ERROR_TYPES.NETWORK
-  }
-  
-  // HTTP状态码错误
-  if (error.response) {
-    switch (error.response.status) {
+  handleHttpError(response) {
+    const status = response.status
+    const message = response.data?.message || '未知错误'
+
+    switch (status) {
+      case 400:
+        ElMessage.error(`请求参数错误: ${message}`)
+        break
       case 401:
-        return ERROR_TYPES.AUTH
+        ElMessage.error('未授权，请重新登录')
+        // 触发登出逻辑
+        break
+      case 403:
+        ElMessage.error('没有权限访问该资源')
+        break
+      case 404:
+        ElMessage.error('请求的资源不存在')
+        break
+      case 429:
+        ElMessage.error('请求过于频繁，请稍后再试')
+        break
       case 500:
-        return ERROR_TYPES.API
+        ElMessage.error('服务器错误，请稍后重试')
+        break
+      default:
+        ElMessage.error(`请求失败: ${message}`)
     }
   }
-  
-  return ERROR_TYPES.DEFAULT
-}
 
-/* ---------- 具体错误处理器 ---------- */
-
-// 网络错误处理
-function showNetworkError(error, { store }) {
-  store.commit('setOfflineMode', true)
-  
-  ElNotification.error({
-    title: '网络中断',
-    message: '检测到网络连接异常，请检查网络设置',
-    duration: 0, // 不自动关闭
-    onClick: () => window.location.reload()
-  })
-}
-
-// 认证错误处理
-function handleAuthError(error, { store, router }) {
-  store.dispatch('logout')
-  
-  ElMessageBox.confirm(
-    '登录状态已过期，请重新登录',
-    '会话过期',
-    {
-      confirmButtonText: '重新登录',
-      showCancelButton: false,
-      closeOnClickModal: false,
-      closeOnPressEscape: false
+  handleNetworkError(error) {
+    if (!navigator.onLine) {
+      ElMessage.error('网络连接已断开，请检查网络')
+    } else {
+      ElMessage.error('无法连接到服务器，请稍后重试')
     }
-  ).then(() => {
-    router.push('/login')
-  })
-}
-
-// 服务端错误处理
-function showServiceError(error) {
-  ElNotification.error({
-    title: '服务异常',
-    message: `服务器处理失败: ${error.response?.data?.message || '未知错误'}`,
-    duration: 5000
-  })
-}
-
-// 默认错误处理
-function showDefaultError(error) {
-  ElNotification.warning({
-    title: '操作异常',
-    message: error.message || '未知错误发生',
-    duration: 3000
-  })
-}
-
-// 错误上报（示例）
-function reportError(error) {
-  const info = {
-    time: new Date().toISOString(),
-    message: error.message,
-    stack: error.stack,
-    url: window.location.href,
-    userAgent: navigator.userAgent
   }
-  
-  // 实际项目中替换为您的上报接口
-  navigator.sendBeacon?.('/api/error-log', JSON.stringify(info))
+
+  handleGenericError(error) {
+    ElMessage.error(error.message || '发生未知错误')
+  }
+
+  handleGlobalError(event) {
+    const error = {
+      type: 'runtime',
+      message: event.message || '未知运行时错误',
+      stack: event.error?.stack,
+      componentName: this.getComponentName(event),
+      routePath: window.location.pathname
+    }
+
+    this.logError(error)
+  }
+
+  handlePromiseRejection(event) {
+    const error = {
+      type: 'promise',
+      message: event.reason?.message || '未处理的 Promise 拒绝',
+      stack: event.reason?.stack,
+      routePath: window.location.pathname
+    }
+
+    this.logError(error)
+  }
+
+  handleVueError(err, vm, info) {
+    const error = {
+      type: 'vue',
+      message: err.message || '未知 Vue 错误',
+      stack: err.stack,
+      componentName: vm?.$options.name || '未知组件',
+      routePath: window.location.pathname,
+      info
+    }
+
+    this.logError(error)
+  }
+
+  handleApiError(error, config) {
+    const errorData = {
+      type: 'api',
+      message: error.message || 'API 请求失败',
+      stack: error.stack,
+      routePath: window.location.pathname,
+      url: config.url,
+      method: config.method,
+      params: config.params,
+      status: error.response?.status
+    }
+
+    // 记录慢请求
+    if (config.duration > 5000) {
+      this.monitoringStore?.markSlowRequest(config.url)
+    }
+
+    this.logError(errorData)
+  }
+
+  getComponentName(event) {
+    const element = event.target
+    if (element?.__vueParentComponent) {
+      return element.__vueParentComponent.type.name || '未知组件'
+    }
+    return '未知组件'
+  }
+
+  logError(error) {
+    if (!this.initialized || !this.monitoringStore) {
+      console.error('ErrorHandler 未初始化', error)
+      return
+    }
+
+    // 添加到监控存储
+    this.monitoringStore.addError(error)
+
+    // 开发环境下在控制台显示详细信息
+    if (import.meta.env.DEV) {
+      console.group('错误详情')
+      console.error(error.message)
+      console.error('类型:', error.type)
+      console.error('组件:', error.componentName)
+      console.error('路由:', error.routePath)
+      console.error('堆栈:', error.stack)
+      console.groupEnd()
+    }
+
+    // 发送到 Sentry
+    if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
+      Sentry.captureException(new Error(error.message), {
+        extra: error
+      })
+    }
+  }
+
+  // 用于开发环境的错误分析
+  analyzeErrors() {
+    if (!this.monitoringStore) return {}
+
+    const errors = this.monitoringStore.errors
+    const analysis = {
+      totalErrors: errors.length,
+      byType: {},
+      byComponent: {},
+      byRoute: {},
+      recentErrors: this.monitoringStore.recentErrors,
+      slowRequests: this.monitoringStore.slowRequests
+    }
+
+    errors.forEach(error => {
+      // 按类型统计
+      analysis.byType[error.type] = (analysis.byType[error.type] || 0) + 1
+
+      // 按组件统计
+      if (error.componentName) {
+        analysis.byComponent[error.componentName] =
+          (analysis.byComponent[error.componentName] || 0) + 1
+      }
+
+      // 按路由统计
+      if (error.routePath) {
+        analysis.byRoute[error.routePath] =
+          (analysis.byRoute[error.routePath] || 0) + 1
+      }
+    })
+
+    return analysis
+  }
 }
 
-export default {
-  init: initErrorHandler,
-  handle: handleError
-}
+export default new ErrorHandler()

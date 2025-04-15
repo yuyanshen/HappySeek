@@ -5,7 +5,7 @@ __pycache__/
 
 # C extensions
 *.so
-
+*.node_modules
 # Distribution / packaging
 .Python
 build/
@@ -130,7 +130,8 @@ celerybeat.pid
 
 # Environments
 .env
-*.local
+.env.local
+.env.*.local
 .venv
 env/
 venv/
@@ -174,3 +175,68 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# 依赖目录
+node_modules/
+__pycache__/
+.pytest_cache/
+*.pyc
+
+# 环境文件
+.env
+.env.local
+.env.*.local
+venv/
+*.log
+
+# 构建输出
+dist/
+build/
+*.egg-info/
+
+# 编辑器和IDE文件
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# 测试覆盖率报告
+coverage/
+.coverage
+htmlcov/
+
+# 缓存文件
+.cache/
+.temp/
+.eslintcache
+.stylelintcache
+
+# 数据库文件
+*.sqlite3
+*.db
+
+# 日志文件
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 临时文件
+temp/
+tmp/
+*.tmp
+
+# Docker相关
+.docker/
+docker-compose.override.yml
+
+# SSL证书
+*.pem
+*.key
+*.crt
+
+# 系统文件
+Thumbs.db
+.DS_Store

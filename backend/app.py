@@ -1,119 +1,198 @@
 # backend/app.py
-from flask import Flask, request, jsonify
+from flask import Flask, request
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_talisman import Talisman
 from celery import Celery
-import redis
-import uuid
+from dotenv import load_dotenv
 import os
+import redis
+from models import db, init_db
+from api import init_api
 from services.websocket import socketio, init_app as init_socketio
+from middleware.performance import init_performance_monitoring
+from monitoring import init_monitoring
+import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
+import logging.config
 
-app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+# 加载环境变量和日志配置
+load_dotenv()
+logging.config.fileConfig('logging.conf')
+logger = logging.getLogger(__name__)
 
-# Load configuration from environment variables
-redis_host = os.environ.get('REDIS_HOST', 'localhost')
-redis_port = os.environ.get('REDIS_PORT', 6379)
+def create_app():
+    app = Flask(__name__)
 
-# Celery configuration
-app.config.update(
-    CELERY_BROKER_URL=os.environ.get('CELERY_BROKER_URL', f'redis://{redis_host}:{redis_port}/0'),
-    CELERY_RESULT_BACKEND=os.environ.get('CELERY_RESULT_BACKEND', f'redis://{redis_host}:{redis_port}/0')
-)
+    # 初始化性能监控
+    init_performance_monitoring(app)
 
-# Initialize Celery
-celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
-celery.conf.update(app.config)
-
-# Initialize WebSocket
-init_socketio(app)
-
-# Task status storage
-redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=1)
-
-@app.route('/api/crawl', methods=['POST'])
-def start_crawl():
-    data = request.json
-    task_id = str(uuid.uuid4())
-    
-    # Store initial status
-    redis_client.hset(task_id, mapping={
-        'status': 'pending',
-        'progress': '0',
-        'urls': ','.join(data['urls']),
-        'depth': str(data['depth'])
-    })
-    
-    # Start async task
-    crawl_task.delay(task_id, data['urls'], data['depth'])
-    
-    return jsonify({'task_id': task_id})
-
-@app.route('/api/tasks/<task_id>', methods=['GET'])
-def get_task_status(task_id):
-    task_data = redis_client.hgetall(task_id)
-    if not task_data:
-        return jsonify({'error': 'Task not found'}), 404
-    
-    return jsonify({
-        'status': task_data.get(b'status', b'').decode(),
-        'progress': int(task_data.get(b'progress', b'0')),
-        'result_count': int(task_data.get(b'result_count', b'0'))
-    })
-
-@app.route('/api/check/url', methods=['POST'])
-def check_url():
-    from urllib.parse import urlparse
-    import requests
-    
-    url = request.json.get('url')
-    try:
-        # Quick HEAD request check
-        resp = requests.head(
-            url, 
-            timeout=3,
-            headers={'User-Agent': 'Mozilla/5.0'},
-            allow_redirects=True
+    # 初始化Sentry错误追踪
+    if os.getenv('SENTRY_DSN'):
+        sentry_sdk.init(
+            dsn=os.getenv('SENTRY_DSN'),
+            integrations=[FlaskIntegration()],
+            traces_sample_rate=0.1,
+            environment=os.getenv('FLASK_ENV', 'production')
         )
-        return jsonify({'status': 'success', 'code': resp.status_code})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 400
 
-@celery.task(bind=True)
-def crawl_task(self, task_id, urls, depth):
-    import asyncio
-    from services.websocket import ProgressReporter
-    reporter = ProgressReporter(task_id)
-    
-    # Update task status
-    redis_client.hset(task_id, 'status', 'running')
-    reporter.update(10, 'running', 'Task started')
-    
-    try:
-        # Mock crawler implementation (replace with actual implementation)
-        result_count = 0
-        total_urls = len(urls)
-        
-        for i, url in enumerate(urls):
-            progress = int((i / total_urls) * 80) + 10
-            reporter.update(progress, 'running', f'Processing URL: {url}')
-            # Simulate work
-            import time
-            time.sleep(2)
-            result_count += 5
-        
-        # Update final status
-        redis_client.hset(task_id, mapping={
-            'status': 'completed',
-            'progress': '100',
-            'result_count': str(result_count)
-        })
-        reporter.update(100, 'completed', 'Task completed successfully')
-        
-        return result_count
-    except Exception as e:
-        redis_client.hset(task_id, 'status', 'failed')
-        reporter.update(0, 'failed', str(e))
-        raise self.retry(exc=e)
+    # 安全配置
+    Talisman(app,
+        force_https=True,
+        strict_transport_security=True,
+        session_cookie_secure=True,
+        content_security_policy={
+            'default-src': "'self'",
+            'img-src': '*',
+            'script-src': ["'self'", "'unsafe-inline'"],
+            'style-src': ["'self'", "'unsafe-inline'"]
+        }
+    )
+
+    # CORS配置
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": os.getenv('ALLOWED_ORIGINS', '*').split(','),
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"]
+        }
+    })
+
+    # 速率限制
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        storage_uri=os.getenv('REDIS_URL', "redis://redis:6379/0"),
+        strategy="fixed-window-elastic-expiry"
+    )
+
+    # 全局限制
+    limiter.limit("200/minute")(app)
+
+    # 数据库配置
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'mysql+pymysql://root:password@mysql/crawler')
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_size': 10,
+        'pool_recycle': 3600,
+        'pool_pre_ping': True
+    }
+
+    # Redis配置
+    app.config['REDIS_URL'] = os.getenv('REDIS_URL', 'redis://redis:6379/0')
+    app.redis = redis.from_url(
+        app.config['REDIS_URL'],
+        decode_responses=True,
+        socket_timeout=5,
+        socket_connect_timeout=5
+    )
+
+    # JWT配置
+    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key')
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 3600))
+    app.config['JWT_REFRESH_TOKEN_EXPIRES'] = int(os.getenv('JWT_REFRESH_TOKEN_EXPIRES', 2592000))
+    app.config['JWT_ERROR_MESSAGE_KEY'] = 'message'
+    app.config['JWT_BLACKLIST_ENABLED'] = True
+    app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
+
+    # Celery配置
+    app.config.update(
+        CELERY_BROKER_URL=os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0'),
+        CELERY_RESULT_BACKEND=os.getenv('CELERY_RESULT_BACKEND', 'redis://redis:6379/0'),
+        CELERY_TASK_SERIALIZER='json',
+        CELERY_RESULT_SERIALIZER='json',
+        CELERY_ACCEPT_CONTENT=['json'],
+        CELERY_TIMEZONE='Asia/Shanghai',
+        CELERY_ENABLE_UTC=True,
+        CELERY_WORKER_MAX_TASKS_PER_CHILD=1000,
+        CELERY_WORKER_PREFETCH_MULTIPLIER=4,
+        CELERY_TASK_ACKS_LATE=True
+    )
+
+    # 初始化扩展
+    db.init_app(app)
+    jwt = JWTManager(app)
+    init_socketio(app)
+    init_api(app)
+    metrics = init_monitoring(app)
+
+    # 创建数据库表
+    with app.app_context():
+        init_db()
+
+    # 错误处理
+    @app.errorhandler(404)
+    def not_found(error):
+        logger.warning(f"404 error: {request.url}")
+        return {'error': 'Not found', 'code': 'NOT_FOUND'}, 404
+
+    @app.errorhandler(500)
+    def server_error(error):
+        logger.error(f"500 error: {error}")
+        return {'error': 'Internal server error', 'code': 'SERVER_ERROR'}, 500
+
+    @app.errorhandler(429)
+    def ratelimit_handler(error):
+        logger.warning(f"Rate limit exceeded for {request.remote_addr}")
+        return {'error': 'Rate limit exceeded', 'code': 'RATE_LIMIT_EXCEEDED'}, 429
+
+    # 健康检查
+    @app.route('/health')
+    @limiter.exempt
+    def health_check():
+        app.logger.debug("Health check request received")
+        try:
+            # 检查数据库连接
+            db.session.execute('SELECT 1')
+            # 检查Redis连接
+            app.redis.ping()
+
+            checks = {
+                'status': 'healthy',
+                'version': os.getenv('APP_VERSION', '1.0.0'),
+                'database': 'connected',
+                'redis': 'connected'
+            }
+            return checks, 200
+        except Exception as e:
+            logger.error(f"Health check failed: {e}")
+            return {
+                'status': 'unhealthy',
+                'error': str(e)
+            }, 503
+
+    return app
+
+def create_celery(app):
+    celery = Celery(
+        app.import_name,
+        backend=app.config['CELERY_RESULT_BACKEND'],
+        broker=app.config['CELERY_BROKER_URL']
+    )
+    celery.conf.update(app.config)
+
+    class ContextTask(celery.Task):
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return self.run(*args, **kwargs)
+
+        def on_failure(self, exc, task_id, args, kwargs, einfo):
+            logger.error(f'Task {task_id} failed: {exc}')
+            super().on_failure(exc, task_id, args, kwargs, einfo)
+
+    celery.Task = ContextTask
+    return celery
+
+app = create_app()
+celery = create_celery(app)
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    socketio.run(
+        app,
+        host='0.0.0.0',
+        port=int(os.getenv('PORT', 5000)),
+        debug=os.getenv('FLASK_ENV') == 'development',
+        use_reloader=os.getenv('FLASK_ENV') == 'development'
+    )
