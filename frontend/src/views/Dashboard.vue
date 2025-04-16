@@ -70,8 +70,8 @@
                 {{ getStatusText(task.status) }}
               </el-tag>
             </div>
-            <el-progress 
-              :percentage="task.progress" 
+            <el-progress
+              :percentage="task.progress"
               :status="task.status === 'failed' ? 'exception' : undefined"
             />
             <div class="task-details">
@@ -99,10 +99,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useTaskStore } from '@/stores/task'
-import { List, Grid } from '@element-plus/icons-vue'
+import { CircleCheck, Collection, Document, Grid, List, Timer } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
+import { onMounted, onUnmounted, reactive, ref } from 'vue'
 
 const taskStore = useTaskStore()
 const timeRange = ref('day')
@@ -118,28 +118,28 @@ const statistics = reactive([
   {
     title: '今日任务数',
     value: 0,
-    icon: 'Document',
+    icon: Document,
     type: 'primary',
     trend: 12.5
   },
   {
     title: '成功率',
     value: '98.2%',
-    icon: 'Success',
+    icon: CircleCheck,
     type: 'success',
     trend: 2.1
   },
   {
     title: '平均耗时',
     value: '2.5min',
-    icon: 'Timer',
+    icon: Timer,
     type: 'warning',
     trend: -5.3
   },
   {
     title: '已采集数据',
     value: '12.5K',
-    icon: 'Collection',
+    icon: Collection,
     type: 'info',
     trend: 8.7
   }

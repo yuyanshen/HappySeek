@@ -20,7 +20,7 @@
             <div class="url-input-section">
               <h3>选择目标网址</h3>
               <p class="step-description">输入您想要采集的网页地址，支持批量输入或文件导入</p>
-              
+
               <el-form-item>
                 <el-input
                   v-model="form.urls"
@@ -121,24 +121,24 @@
           </div>
 
           <div class="step-actions">
-            <el-button 
-              v-if="activeStep > 0" 
+            <el-button
+              v-if="activeStep > 0"
               @click="activeStep--"
               :icon="ArrowLeft"
             >
               上一步
             </el-button>
-            <el-button 
-              v-if="activeStep < 2" 
-              type="primary" 
+            <el-button
+              v-if="activeStep < 2"
+              type="primary"
               @click="activeStep++"
               :icon="ArrowRight"
             >
               下一步
             </el-button>
-            <el-button 
-              v-else 
-              type="primary" 
+            <el-button
+              v-else
+              type="primary"
               :loading="loading"
               @click="startCrawling"
               :icon="Launch"
@@ -182,7 +182,7 @@
               <div v-for="task in activeTasks" :key="task.id" class="task-item">
                 <div class="task-info">
                   <span class="task-url">{{ truncateUrl(task.url) }}</span>
-                  <el-progress 
+                  <el-progress
                     :percentage="task.progress"
                     :status="task.status === 'failed' ? 'exception' : undefined"
                   />
@@ -200,12 +200,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Check, ArrowLeft, ArrowRight, Launch } from '@element-plus/icons-vue'
 import UrlUploader from '@/components/UrlUploader.vue'
-import axios from 'axios'
 import { useTaskStore } from '@/stores/task'
+import { ArrowLeft, ArrowRight, Check } from '@element-plus/icons-vue'
+import axios from 'axios'
+import { ElMessage } from 'element-plus'
+import { onMounted, reactive, ref } from 'vue'
 
 const taskStore = useTaskStore()
 const activeStep = ref(0)
@@ -248,7 +248,7 @@ const validateUrls = async () => {
   loading.value = true
 
   try {
-    const promises = urls.map(url => 
+    const promises = urls.map(url =>
       axios.post('/api/check/url', { url })
         .then(() => ({ url, valid: true }))
         .catch(() => ({ url, valid: false }))
@@ -312,7 +312,7 @@ const truncateUrl = (url) => {
 // 监听任务状态
 onMounted(() => {
   activeTasks.value = taskStore.activeTasks
-  
+
   // 更新统计信息
   const updateStats = () => {
     const tasks = taskStore.activeTasks
@@ -321,7 +321,7 @@ onMounted(() => {
     stats.failed = tasks.filter(t => t.status === 'failed').length
     stats.pending = tasks.filter(t => t.status === 'pending').length
   }
-  
+
   updateStats()
   // 监听任务状态变化
   taskStore.$subscribe((mutation, state) => {

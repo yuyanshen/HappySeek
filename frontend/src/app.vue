@@ -1,17 +1,21 @@
 <!-- frontend/src/app.vue -->
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { Menu } from '@element-plus/icons-vue'
-import { setupTaskSocket, disconnectSocket } from '@/utils/socket'
-import { useAppStore } from '@/stores/app'
 import AppNav from '@/components/AppNav.vue'
+import { useAppStore } from '@/stores/app'
 import errorHandler from '@/utils/errorHandler'
+import { disconnectSocket, setupTaskSocket } from '@/utils/socket'
+import { Menu } from '@element-plus/icons-vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+
+// 初始化错误处理
+errorHandler.init()
 
 const appStore = useAppStore()
 const route = useRoute()
 const isMobile = ref(window.innerWidth < 768)
 const isNavVisible = ref(!isMobile.value)
+const isAppReady = ref(false)
 
 // 页面标题映射
 const pageTitles = {
@@ -69,13 +73,28 @@ const handleError = (error) => {
   })
 }
 
-onMounted(() => {
-  appStore.loadAppConfig()
+// 初始化应用配置
+const initApp = async () => {
+  try {
+    await appStore.loadAppConfig()
+    isAppReady.value = true
+  } catch (error) {
+    console.error('Failed to load app config:', error)
+    ElNotification({
+      title: '初始化失败',
+      message: '应用配置加载失败，请刷新页面重试',
+      type: 'error',
+      duration: 0
+    })
+  }
+}
+
+onMounted(async () => {
+  await initApp()
   manageSocketConnection()
   window.addEventListener('resize', handleResize)
   window.addEventListener('error', handleError)
   window.addEventListener('unhandledrejection', handleError)
-  errorHandler.init()
 })
 
 onUnmounted(() => {
@@ -89,14 +108,13 @@ watch(() => route.path, manageSocketConnection)
 </script>
 <template>
   <el-config-provider namespace="ep">
-    <!-- 深色主题容器 -->
-    <div class="app-container" :class="{ 'nav-expanded': !isMobile || isNavVisible }">
+    <div v-if="isAppReady" class="app-container" :class="{ 'nav-expanded': !isMobile || isNavVisible }">
       <!-- 导航组件 -->
       <AppNav />
-      
+
       <!-- 移动端导航背景遮罩 -->
-      <div 
-        v-if="isMobile && isNavVisible" 
+      <div
+        v-if="isMobile && isNavVisible"
         class="nav-backdrop"
         @click="toggleNav"
       ></div>
@@ -109,8 +127,8 @@ watch(() => route.path, manageSocketConnection)
         </div>
 
         <router-view v-slot="{ Component }">
-          <transition 
-            name="fade-slide" 
+          <transition
+            name="fade-slide"
             mode="out-in"
             @before-leave="beforeRouteLeave"
             @enter="afterRouteEnter"
@@ -122,13 +140,13 @@ watch(() => route.path, manageSocketConnection)
     </div>
 
     <!-- 全局加载状态 -->
-    <el-loading 
-      v-if="appStore.loading" 
-      fullscreen 
+    <el-loading
+      v-if="!isAppReady"
+      fullscreen
       lock
       text="系统初始化中..."
     />
-    
+
     <!-- 全局通知容器 -->
     <el-notification-group placement="bottom-right" />
   </el-config-provider>

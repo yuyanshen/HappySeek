@@ -15,7 +15,7 @@
       <div class="header-actions">
         <el-button-group>
           <el-tooltip content="刷新" placement="top">
-            <el-button :icon="Refresh" circle @click="refreshTasks" />
+            <el-button :icon="RefreshRight" circle @click="refreshTasks" />
           </el-tooltip>
           <el-tooltip content="清除已完成" placement="top">
             <el-button :icon="Delete" circle @click="clearCompletedTasks" />
@@ -33,7 +33,7 @@
             <div class="task-header">
               <span class="task-type" :class="task.type">{{ task.type }}</span>
               <el-dropdown trigger="click">
-                <el-icon class="more-actions"><More /></el-icon>
+                <el-icon class="more-actions"><MoreFilled /></el-icon>
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item @click="pauseTask(task.id)">
@@ -46,7 +46,7 @@
                 </template>
               </el-dropdown>
             </div>
-            
+
             <div class="task-content">
               <div class="task-info">
                 <h4 class="task-url">{{ truncateUrl(task.url) }}</h4>
@@ -54,20 +54,20 @@
                   深度：{{ task.depth }} | 并发：{{ task.concurrency }}
                 </p>
               </div>
-              
+
               <div class="progress-section">
                 <div class="progress-header">
                   <span class="progress-text">{{ task.progress }}%</span>
                   <span class="time-elapsed">{{ formatDuration(task.elapsed) }}</span>
                 </div>
-                <el-progress 
+                <el-progress
                   :percentage="task.progress"
                   :status="getProgressStatus(task)"
                   :stroke-width="8"
                   :show-text="false"
                 />
               </div>
-              
+
               <div class="task-stats">
                 <div class="stat-item">
                   <span class="stat-label">已采集</span>
@@ -144,21 +144,21 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { ElMessageBox, ElMessage } from 'element-plus'
-import { Refresh, Delete, More } from '@element-plus/icons-vue'
 import { useTaskStore } from '@/stores/task'
+import { Delete, MoreFilled, RefreshRight } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { computed, ref } from 'vue'
 
 const taskStore = useTaskStore()
 const logsDialogVisible = ref(false)
 const selectedTaskLogs = ref([])
 
 // 计算属性
-const runningTasks = computed(() => 
+const runningTasks = computed(() =>
   taskStore.activeTasks.filter(t => t.status === 'running')
 )
 
-const pendingTasks = computed(() => 
+const pendingTasks = computed(() =>
   taskStore.pendingTasks
 )
 

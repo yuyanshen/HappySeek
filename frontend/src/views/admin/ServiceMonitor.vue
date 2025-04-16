@@ -238,12 +238,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
-import * as echarts from 'echarts'
-import dayjs from 'dayjs'
-import ServiceMonitor from '@/components/ServiceMonitor.vue'
+import type { ErrorData, HealthCheck, PerformanceData } from '@/api/monitoring'
 import { monitoringAPI } from '@/api/monitoring'
-import type { HealthCheck, ErrorData, PerformanceData } from '@/api/monitoring'
+import ServiceMonitor from '@/components/ServiceMonitor.vue'
+import dayjs from 'dayjs'
+import * as echarts from 'echarts'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 const activeTab = ref('system')
 const healthData = ref<HealthCheck | null>(null)
@@ -601,7 +601,7 @@ onMounted(() => {
 })
 
 // 组件卸载
-onUnmounted(() => {
+onBeforeUnmount(() => {
   if (refreshTimer) {
     clearInterval(refreshTimer)
   }
@@ -613,7 +613,7 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .service-monitor-view {
   padding: 20px;
 
@@ -631,15 +631,15 @@ onUnmounted(() => {
         margin-bottom: 15px;
 
         &.healthy {
-          border-color: #67C23A;
+          border-color: var(--success-color);
         }
 
         &.warning {
-          border-color: #E6A23C;
+          border-color: var(--warning-color);
         }
 
         &.unhealthy {
-          border-color: #F56C6C;
+          border-color: var(--error-color);
         }
 
         .component-header {
@@ -650,7 +650,7 @@ onUnmounted(() => {
 
         .message {
           margin-bottom: 10px;
-          color: #606266;
+          color: var(--text-secondary);
         }
 
         .metrics {
@@ -680,8 +680,8 @@ onUnmounted(() => {
 
     pre {
       padding: 15px;
-      background-color: #f8f9fa;
-      border-radius: 4px;
+      background-color: var(--surface-color);
+      border-radius: var(--border-radius-base);
       font-family: monospace;
       white-space: pre-wrap;
     }
@@ -731,5 +731,4 @@ onUnmounted(() => {
       font-family: monospace;
     }
   }
-}
-</style>
+}</style>

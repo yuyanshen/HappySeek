@@ -10,7 +10,13 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     plugins: [
-      vue(),
+      vue({
+        template: {
+          compilerOptions: {
+            isCustomElement: tag => tag.startsWith('ion-')
+          }
+        }
+      }),
       vueJsx(),
       createSvgIconsPlugin({
         iconDirs: [path.resolve(process.cwd(), 'src/assets/icons')],
@@ -38,7 +44,7 @@ export default defineConfig(({ command, mode }) => {
     css: {
       preprocessorOptions: {
         scss: {
-          additionalData: `@import "@/styles/variables.scss";`
+          additionalData: `@use "@/styles/_base.scss" as *;\n`
         }
       }
     },
@@ -58,17 +64,29 @@ export default defineConfig(({ command, mode }) => {
       },
       rollupOptions: {
         output: {
-          manualChunks: {
-            'element-plus': ['element-plus'],
-            'vendor': [
-              'vue',
-              'vue-router',
-              'pinia',
-              'axios',
-              'echarts',
-              'socket.io-client'
-            ]
-          }
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('@vue') || id.includes('vue') || id.includes('@vueuse')) {
+                return 'vue-vendor'
+              }
+              if (id.includes('element-plus')) {
+                return 'element-plus'
+              }
+              if (id.includes('lodash')) {
+                return 'lodash'
+              }
+              if (id.includes('axios')) {
+                return 'axios'
+              }
+              return 'vendor'
+            }
+          },
+          chunkFileNames: 'assets/[name]-[hash].js',
+          entryFileNames: 'assets/[name]-[hash].js',
+          assetFileNames: 'assets/[name]-[hash].[ext]'
+        },
+        input: {
+          main: path.resolve(__dirname, 'index.html')
         }
       }
     },
@@ -88,24 +106,6 @@ export default defineConfig(({ command, mode }) => {
           changeOrigin: true
         }
       }
-    },
-
-    preview: {
-      port: 8080,
-      cors: true
-    },
-
-    optimizeDeps: {
-      include: [
-        'vue',
-        'vue-router',
-        'pinia',
-        'axios',
-        'element-plus',
-        'echarts',
-        'socket.io-client',
-        '@vueuse/core'
-      ]
     }
   }
 })

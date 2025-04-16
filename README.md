@@ -45,7 +45,7 @@ docker-compose up -d
 ```
 
 服务将在以下端口启动：
-- 前端: http://localhost:80
+- 前端: http://localhost:8082
 - 后端 API: http://localhost:5000
 - Redis: localhost:6379
 

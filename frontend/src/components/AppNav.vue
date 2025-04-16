@@ -16,36 +16,24 @@
         class="nav-menu"
         @select="handleSelect"
       >
-        <el-menu-item index="/" class="fade-slide-item">
-          <el-icon><Monitor /></el-icon>
-          <template #title>
-            <span class="nav-item-title">仪表盘</span>
-          </template>
-        </el-menu-item>
-
-        <el-menu-item index="/crawler" class="fade-slide-item">
-          <el-icon><Connection /></el-icon>
-          <template #title>
-            <span class="nav-item-title">爬虫配置</span>
-          </template>
-        </el-menu-item>
-
-        <el-menu-item index="/tasks" class="fade-slide-item">
-          <el-icon><List /></el-icon>
-          <template #title>
-            <span class="nav-item-title">任务监控</span>
-          </template>
-        </el-menu-item>
-
-        <el-sub-menu index="admin" v-if="isAdmin" class="fade-slide-item">
-          <template #title>
-            <el-icon><Setting /></el-icon>
-            <span class="nav-item-title">系统管理</span>
-          </template>
-          <el-menu-item index="/admin/users" class="sub-item">用户管理</el-menu-item>
-          <el-menu-item index="/admin/settings" class="sub-item">系统设置</el-menu-item>
-          <el-menu-item index="/admin/monitor" class="sub-item">服务监控</el-menu-item>
-        </el-sub-menu>
+        <template v-for="item in navItems">
+          <el-menu-item v-if="!item.children && (!item.requireAdmin || isAdmin)" :index="item.path" class="fade-slide-item">
+            <el-icon><component :is="item.icon" /></el-icon>
+            <template #title>
+              <span class="nav-item-title">{{ item.title }}</span>
+            </template>
+          </el-menu-item>
+          <el-sub-menu v-else-if="item.children && (!item.requireAdmin || isAdmin)" :index="item.path" class="fade-slide-item">
+            <template #title>
+              <el-icon><component :is="item.icon" /></el-icon>
+              <span class="nav-item-title">{{ item.title }}</span>
+            </template>
+            <el-menu-item v-for="subItem in item.children" :key="subItem.path" :index="subItem.path" class="sub-item">
+              <el-icon><component :is="subItem.icon" /></el-icon>
+              {{ subItem.title }}
+            </el-menu-item>
+          </el-sub-menu>
+        </template>
       </el-menu>
     </el-scrollbar>
 
@@ -74,16 +62,33 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { Expand, Fold, Monitor, Connection, List, Setting, User, Switch } from '@element-plus/icons-vue'
 import { useAppStore } from '@/stores/app'
+import { Connection, Expand, Fold, List, Monitor, Setting, Switch, User } from '@element-plus/icons-vue'
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
-
 const isCollapsed = ref(false)
+
+const navItems = [
+  { path: '/dashboard', title: '仪表盘', icon: Monitor },
+  { path: '/crawler', title: '爬虫配置', icon: Connection },
+  { path: '/task-monitor', title: '任务监控', icon: List },
+  {
+    path: '/admin',
+    title: '系统管理',
+    icon: Setting,
+    children: [
+      { path: '/admin/monitor', title: '服务监控', icon: Monitor },
+      { path: '/admin/settings', title: '系统设置', icon: Setting },
+      { path: '/admin/users', title: '用户管理', icon: User }
+    ],
+    requireAdmin: true
+  }
+]
+
 const activeRoute = computed(() => route.path)
 const isAdmin = computed(() => appStore.userRole === 'admin')
 

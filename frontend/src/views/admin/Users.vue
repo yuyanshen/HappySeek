@@ -47,7 +47,7 @@
             </template>
           </el-dropdown>
         </div>
-        
+
         <div class="user-body">
           <div class="user-stats">
             <div class="stat-item">
@@ -127,9 +127,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { Calendar, Delete, Edit, Key, Plus, Search, Timer } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Plus, Edit, Delete, More, Calendar, Timer, Key } from '@element-plus/icons-vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 
 // 状态
 const searchQuery = ref('')
@@ -175,9 +175,9 @@ const filteredUsers = computed(() => {
     const matchQuery = !searchQuery.value ||
       user.username.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.value.toLowerCase())
-    
+
     const matchRole = !filterRole.value || user.role === filterRole.value
-    
+
     return matchQuery && matchRole
   })
 })
@@ -232,11 +232,11 @@ const handleDeleteUser = async (user) => {
         type: 'warning'
       }
     )
-    
+
     const response = await fetch(`/api/admin/users/${user.id}`, {
       method: 'DELETE'
     })
-    
+
     if (response.ok) {
       ElMessage.success('删除成功')
       await fetchUsers()
@@ -261,11 +261,11 @@ const handleResetPassword = async (user) => {
         type: 'warning'
       }
     )
-    
+
     const response = await fetch(`/api/admin/users/${user.id}/reset-password`, {
       method: 'POST'
     })
-    
+
     if (response.ok) {
       const { password } = await response.json()
       ElMessageBox.alert(
@@ -291,14 +291,14 @@ const handleResetPassword = async (user) => {
 
 const handleSubmitUser = async () => {
   if (!userFormRef.value) return
-  
+
   try {
     await userFormRef.value.validate()
     submitting.value = true
-    
+
     const method = userForm.id ? 'PUT' : 'POST'
     const url = userForm.id ? `/api/admin/users/${userForm.id}` : '/api/admin/users'
-    
+
     const response = await fetch(url, {
       method,
       headers: {
@@ -306,7 +306,7 @@ const handleSubmitUser = async () => {
       },
       body: JSON.stringify(userForm)
     })
-    
+
     if (response.ok) {
       ElMessage.success(userForm.id ? '更新成功' : '添加成功')
       dialogVisible.value = false

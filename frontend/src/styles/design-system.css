@@ -78,16 +78,26 @@
   --z-index-modal: 1050;
   --z-index-popover: 1060;
   --z-index-tooltip: 1070;
+
+  /* 使用css变量 */
+  color-scheme: dark;
 }
 
 /* 全局基础样式 */
 body {
-  background-color: var(--background-color);
+  background-color: var(--surface-color);
   color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  line-height: var(--line-height-normal);
+  line-height: 1.5;
+}
+
+/* 重置基础样式 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 /* 滚动条样式 */
@@ -112,8 +122,8 @@ body {
 /* 通用工具类 */
 .glass-card {
   background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: var(--border-radius-lg);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -122,8 +132,48 @@ body {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.full-width {
+  width: 100%;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-success { color: var(--success-color); }
+.text-warning { color: var(--warning-color); }
+.text-danger { color: var(--error-color); }
+.text-info { color: var(--info-color); }
+
+.bg-success { background-color: var(--success-color); }
+.bg-warning { background-color: var(--warning-color); }
+.bg-danger { background-color: var(--error-color); }
+.bg-info { background-color: var(--info-color); }
+
 .fade-scale {
-  animation: fadeScale 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeScale 0.3s ease-out;
 }
 
 @keyframes fadeScale {
@@ -138,7 +188,7 @@ body {
 }
 
 .fade-slide {
-  animation: fadeSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeSlide 0.3s ease-out;
 }
 
 @keyframes fadeSlide {
@@ -191,23 +241,23 @@ body {
   --el-color-warning: var(--warning-color);
   --el-color-danger: var(--error-color);
   --el-color-info: var(--info-color);
-  
+
   --el-bg-color: var(--surface-color);
   --el-bg-color-overlay: var(--surface-color);
-  
+
   --el-text-color-primary: var(--text-primary);
   --el-text-color-regular: var(--text-secondary);
   --el-text-color-secondary: var(--text-secondary);
   --el-text-color-placeholder: var(--text-disabled);
-  
+
   --el-border-radius-base: var(--border-radius-md);
   --el-border-radius-small: var(--border-radius-sm);
   --el-border-radius-round: var(--border-radius-full);
-  
+
   --el-font-size-base: var(--font-size-base);
   --el-font-size-small: var(--font-size-sm);
   --el-font-size-large: var(--font-size-lg);
-  
+
   --el-font-weight-primary: var(--font-weight-medium);
 }
 
@@ -422,6 +472,12 @@ body {
 }
 
 .show-on-mobile {
+  @media (min-width: 769px) {
+    display: none !important;
+  }
+}
+
+.hide-on-desktop {
   @media (min-width: 769px) {
     display: none !important;
   }

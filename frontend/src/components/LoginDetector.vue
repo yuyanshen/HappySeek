@@ -14,27 +14,27 @@
       </template>
     </el-dialog>
   </template>
-  
+
   <script setup>
-  import { ref } from 'vue'
-  
+  import { defineExpose, ref } from 'vue'
+
   const visible = ref(false)
   const loginForm = ref({
     username: '',
     password: '',
     url: ''
   })
-  
+
   const showDialog = (url) => {
     loginForm.value.url = url
     visible.value = true
   }
-  
+
   const handleSubmit = () => {
     // 这里调用API保存登录凭证
     console.log('提交登录信息:', loginForm.value)
     visible.value = false
   }
-  
+
   defineExpose({ showDialog })
   </script>

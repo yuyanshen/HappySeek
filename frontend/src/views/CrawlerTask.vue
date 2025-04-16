@@ -1,7 +1,7 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import LoginDetector from '@/components/LoginDetector.vue'
 import { checkLoginPage } from '@/api/crawler'
+import LoginDetector from '@/components/LoginDetector.vue'
+import { ref } from 'vue'
 
 const loginDetector = ref()
 const taskUrls = ref([])

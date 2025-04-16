@@ -175,16 +175,13 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
-import { ElMessage } from 'element-plus'
 import {
-  Connection,
-  CPU,
-  Lock,
   Bell,
-  CircleCheck,
-  CircleClose
+  Connection,
+  Lock
 } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { reactive, ref } from 'vue'
 
 // 设置状态
 const crawlerSettings = reactive({
